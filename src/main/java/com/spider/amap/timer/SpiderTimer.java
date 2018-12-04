@@ -17,9 +17,10 @@ import javax.annotation.Resource;
 @Component
 public class SpiderTimer {
 
-    private final static Logger logger = LogManager.getLogger(SpiderTimer.class);
     @Resource
     private SpiderMapService spiderMapService;
+
+    private final static Logger logger = LogManager.getLogger(SpiderTimer.class);
 
     //    @Scheduled(cron = "0 38 20 * * ?")
     @Scheduled(initialDelay = 1000, fixedRate = 60000)

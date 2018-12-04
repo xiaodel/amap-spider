@@ -22,18 +22,21 @@ import java.util.List;
 @ConfigurationProperties(prefix = "spider.city.map")
 public class MapConfiguration {
 
-    //    1米的纬度
-    public final static double ONE_LATITUDE = 0.00000899;
-    //    1米的经度
-    public final static double ONE_LONGITUDE = 0.00001141;
-    private List<String> key;
-    //    #东北角经纬度
-    private String northeast;
-    //    西南角经纬度
-    private String southwest;
-    //查询POI类型
-    private String types;
-    //    搜索、分片距离(默认4KM)
-    private int distance = 4000;
+
+    public final static double ONE_LATITUDE = 0.00000899;//1米的纬度
+
+    public final static double ONE_LONGITUDE = 0.00001141; //1米的经度
+
+    private List<String> key;//高德key
+
+    private String northeast; //东北角经纬度
+
+    private String southwest; //西南角经纬度
+
+    private String keywords;  //查询关键词
+
+    private String types;//查询POI类型
+
+    private int distance = 4000;  //搜索、分片距离(默认4KM)
 
 }

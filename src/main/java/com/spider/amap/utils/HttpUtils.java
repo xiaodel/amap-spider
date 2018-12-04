@@ -154,12 +154,12 @@ public class HttpUtils {
             url += param;
         }
         CloseableHttpClient httpClient = HttpClients.createDefault();
-        HttpGet httpGet = new HttpGet(url);
-        RequestConfig config = RequestConfig.custom().setConnectTimeout(TIME_OUT)
-                .setConnectionRequestTimeout(TIME_OUT).setSocketTimeout(TIME_OUT).setRedirectsEnabled(true).build();
-        httpGet.setConfig(config);
-        httpGet.setHeader("Content-type", "application/x-www-form-urlencoded");
         try {
+            HttpGet httpGet = new HttpGet(url);
+            RequestConfig config = RequestConfig.custom().setConnectTimeout(TIME_OUT)
+                    .setConnectionRequestTimeout(TIME_OUT).setSocketTimeout(TIME_OUT).setRedirectsEnabled(true).build();
+            httpGet.setConfig(config);
+            httpGet.setHeader("Content-type", "application/x-www-form-urlencoded");
             HttpResponse response = httpClient.execute(httpGet);
             HttpEntity entity = response.getEntity();
             if (entity != null) {
