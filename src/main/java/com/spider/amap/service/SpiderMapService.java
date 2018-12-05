@@ -6,6 +6,7 @@ import com.spider.amap.config.MapConfiguration;
 import com.spider.amap.dao.SpiderMapDao;
 import com.spider.amap.enums.EmailTypeEnum;
 import com.spider.amap.exception.AMapException;
+import com.spider.amap.model.OPSLimiter;
 import com.spider.amap.model.PolygonSearchParam;
 import com.spider.amap.model.RegionModel;
 import com.spider.amap.utils.HttpUtils;
@@ -24,6 +25,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * 爬取高德数据服务
@@ -38,14 +40,17 @@ public class SpiderMapService {
     private MapConfiguration mapConfiguration;
     @Resource
     private EmailService emailService;
-    private final static String POLYGON_URL = "https://restapi.amap.com/v3/place/polygon";//多边形搜索
-    private final static Logger logger = LogManager.getLogger(SpiderMapService.class);
-    //使用的第几个高德key
-    private static int KEY_INDEX = 0;
     @Resource
     private SpiderMapDao spiderMapDao;
     @Resource
     private SpiderMapSaveService spiderMapSaveService;
+
+    private final static String POLYGON_URL = "https://restapi.amap.com/v3/place/polygon";//多边形搜索
+    private final static Logger logger = LogManager.getLogger(SpiderMapService.class);
+    //使用的第几个高德key
+    private static int KEY_INDEX = 0;
+    private AtomicInteger at;
+    private OPSLimiter limiter;
 
 
     /**
@@ -66,6 +71,9 @@ public class SpiderMapService {
         }
 
         try {
+            at = new AtomicInteger(0);
+            limiter = new OPSLimiter(20);
+
             startSpiderData(regionModels);
         } catch (Exception e) {
             if (e instanceof AMapException) {
@@ -84,21 +92,36 @@ public class SpiderMapService {
     private void startSpiderData(Iterable<RegionModel> region) {
         Iterator<RegionModel> iterator = region.iterator();
         while (iterator.hasNext()) {
-            getRegionModelPolygonData(iterator.next(), 1);
+            RegionModel regionModel = iterator.next();
+            getRegionModelPolygonData(regionModel, 1);
+            spiderMapDao.delete(regionModel);
         }
     }
 
     private void getRegionModelPolygonData(RegionModel model, int pageIndex) {
+        int pageNum = 20;
+
         PolygonSearchParam param = new PolygonSearchParam();
         String encode = URLEncoder.QUERY.encode("|", Charset.forName("utf-8"));
-        param.setLocation(model.getNortheast() + encode + model.getNorthwest() + encode + model.getSouthwest() + encode + model.getSoutheast());
+        param.setLocation(model.getNorthwest() + encode + model.getSoutheast());
         param.setKeywords(mapConfiguration.getKeywords());
         param.setTypes(mapConfiguration.getTypes());
         param.setRadius(mapConfiguration.getDistance());
-        param.setOffset(20);
+        param.setOffset(pageNum);
         param.setPage(pageIndex);
+
         String polygonData = getPolygonData(param);
-        System.out.println(polygonData);
+
+        if (StringUtils.isBlank(polygonData)) {
+            return;
+        }
+
+        JSONObject parseObject = JSON.parseObject(polygonData);
+        spiderMapSaveService.saveSpiderData(parseObject.getJSONArray("pois"));
+        Integer count = parseObject.getInteger("count");
+        if (count > pageIndex * pageNum) {
+            getRegionModelPolygonData(model, 1 + pageIndex);
+        }
     }
 
     private String getPolygonData(PolygonSearchParam param) {
@@ -107,7 +130,7 @@ public class SpiderMapService {
 
         Map<String, String> paramMap = new HashMap<>();
 
-        paramMap.put("location", param.getLocation());
+        paramMap.put("polygon", param.getLocation());
         paramMap.put("offset", String.valueOf(param.getOffset()));
         paramMap.put("page", String.valueOf(param.getPage()));
 
@@ -139,35 +162,73 @@ public class SpiderMapService {
     }
 
     private String aMapHttpGet(String url, Map param) {
-        String result = null;
-        param.put("key", mapConfiguration.getKey().get(KEY_INDEX));
-        result = HttpUtils.get(url, param);
+
+        String mapKey = mapConfiguration.getKey().get(KEY_INDEX);
+        param.put("key", mapKey);
 
         try {
+
+            String result = HttpUtils.get(url, param);
+
             JSONObject jsonObject = JSON.parseObject(result);
 
-
-//            开发者的日访问量超限
-            String infocode = jsonObject.getString("infocode");
-            if ("10003".equals(infocode) || "10009".equals(infocode)) {
-                KEY_INDEX = (mapConfiguration.getKey().size() - 1) <= KEY_INDEX ? 0 : KEY_INDEX + 1;
-                if (KEY_INDEX == 0) {
-                    throw new AMapException("高德key今日已使用完，明日继续！");
-                }
-                aMapHttpGet(url, param);
+            if (jsonObject == null || StringUtils.isBlank(jsonObject.getString("infocode"))) {
+                return null;
             }
 
-            if ("1".equals(jsonObject.getString("status"))) {
+            String code = jsonObject.getString("infocode");
+
+            if ("10000".equals(code)) {
                 return result;
             }
 
-        } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("高德api请求失败: ", result, e);
-        }
+            if ("10001".equals(code)) {
+                String errorMessage = "key:" + mapKey + ",不正确或过期。";
+                emailService.send(EmailTypeEnum.START_ERROR, errorMessage);
+                logger.error(errorMessage);
+                return nextKey(url, param);
+            }
 
-        logger.error("请求高德失败, ", result);
+            if ("10004".equals(code)) {
+                return "开发者的单位时间内（1分钟）访问量超限";
+            }
+
+            if ("10010".equals(code)) {
+                String errorMessage = "IP访问超限，明日继续！";
+                emailService.send(EmailTypeEnum.START_ERROR, errorMessage);
+                logger.error(errorMessage);
+                throw new AMapException(errorMessage);
+            }
+
+            if ("10003".equals(code)) {
+                String errorMessage = "key:" + mapKey + ",访问已超出日访问量";
+                emailService.send(EmailTypeEnum.START_ERROR, errorMessage);
+                logger.error(errorMessage);
+                return nextKey(url, param);
+            }
+
+            if ("10009".equals(code)) {
+                String errorMessage = "请求key:" + mapKey + ",与绑定平台不符";
+                emailService.send(EmailTypeEnum.START_ERROR, errorMessage);
+                logger.error(errorMessage);
+                return nextKey(url, param);
+            }
+
+        } catch (Exception e) {
+            logger.error("请求高德失败,url:" + url + ",请求参数:" + param, e);
+        }
         return null;
+    }
+
+    /**
+     * 获取下一个高德key
+     */
+    private String nextKey(String url, Map param) {
+        KEY_INDEX = (mapConfiguration.getKey().size() - 1) <= KEY_INDEX ? 0 : KEY_INDEX + 1;
+        if (KEY_INDEX == 0) {
+            throw new AMapException("设置的key已经全部使用完，明日继续！");
+        }
+        return aMapHttpGet(url, param);
     }
 
 
