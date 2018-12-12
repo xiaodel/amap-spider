@@ -1,0 +1,43 @@
+CREATE TABLE lezf_city_post
+(
+  id          BIGINT UNSIGNED AUTO_INCREMENT
+  COMMENT 'id'
+    PRIMARY KEY,
+  name        CHAR(32)                            NOT NULL
+  COMMENT '名称',
+  code        CHAR(16)                            NOT NULL
+  COMMENT '通用编码',
+  parent_id   BIGINT UNSIGNED                     NOT NULL,
+  longitude   DECIMAL(10, 6)                      NOT NULL
+  COMMENT '经度',
+  latitude    DECIMAL(10, 6)                      NOT NULL
+  COMMENT '纬度',
+  level       TINYINT                             NOT NULL
+  COMMENT '1:城市,2:行政区',
+  status      TINYINT DEFAULT '1'                 NULL
+  COMMENT '是否开通(0:否，1：是)',
+  create_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  COMMENT '创建日期',
+  update_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL
+  COMMENT '修改日期',
+  CONSTRAINT code
+  UNIQUE (code)
+)
+  COMMENT '城市行政区表'
+  ENGINE = InnoDB
+  CHARSET = utf8;
+
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1, '成都市', '028', 0, 104.065735, 30.659462, 1, 1, '2018-11-20 10:48:07', '2018-11-20 10:48:07');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188205723649, '新都区', '510114', 1, 104.160220, 30.824223, 2, 1, '2018-11-20 11:00:56', '2018-11-20 11:00:56');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188310581249, '成华区', '510108', 1, 104.103077, 30.660275, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188520296450, '龙泉驿区', '510112', 1, 104.269181, 30.560650, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188730011650, '锦江区', '510104', 1, 104.080989, 30.657689, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188834869250, '青羊区', '510105', 1, 104.055731, 30.667648, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715188943921153, '温江区', '510115', 1, 103.836776, 30.697996, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189040390146, '金牛区', '510106', 1, 104.043487, 30.692058, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189149442049, '郫都区', '510117', 1, 103.887842, 30.808752, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189258493954, '武侯区', '510107', 1, 104.051670, 30.630862, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189359157249, '双流区', '510116', 1, 103.922706, 30.573243, 2, 1, '2018-11-20 11:00:57', '2018-11-20 11:00:57');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189359157250, '青白江区', '510113', 1, 104.254940, 30.883438, 2, 1, '2018-11-22 13:41:53', '2018-11-22 13:41:53');
+  INSERT INTO lezf_city_post (id, name, code, parent_id, longitude, latitude, level, status, create_date, update_date) VALUES (1064715189359157251, '简阳市', '510185', 1, 104.550339, 30.390666, 2, 1, '2018-11-22 13:43:19', '2018-11-22 13:43:19');
+
